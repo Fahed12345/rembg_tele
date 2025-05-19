@@ -72,7 +72,16 @@ async def remove_background(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         logger.info(f"Processing image, size: {input_image.size}, mode: {input_image.mode}")
         
         # استخدام نموذج أخف (u2netp) بدلاً من النموذج الافتراضي
-        output_image = remove(input_image, alpha_matting=False, alpha_matting_foreground_threshold=0, alpha_matting_background_threshold=0, session=None, only_mask=False, post_process_mask=False, model_name="u2netp")
+        # تصحيح طريقة استدعاء الدالة remove
+        output_image = remove(
+            input_image,
+            alpha_matting=False,
+            alpha_matting_foreground_threshold=0,
+            alpha_matting_background_threshold=0,
+            only_mask=False,
+            post_process_mask=False,
+            model_name="u2netp"  # تحديد النموذج الأخف
+        )
         
         logger.info("Background removed successfully")
         
