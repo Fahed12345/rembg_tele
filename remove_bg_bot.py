@@ -82,13 +82,24 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         "أرسل لي صورة وسأقوم بإزالة خلفيتها. استخدم /help للحصول على المساعدة."
     )
 
+# Add an error handler function
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and send a message to the developer."""
+    logger.error(f"Exception while handling an update: {context.error}")
+    
+    # Log the stack trace
+    import traceback
+    traceback.print_exception(None, context.error, context.error.__traceback__)
+
 def main() -> None:
     """بدء تشغيل البوت."""
     # تسجيل بدء تشغيل البوت
     logger.info("Starting bot...")
     
-    # إنشاء التطبيق
-    application = Application.builder().token(TOKEN).build()
+    # إنشاء التطبيق مع إعدادات محسنة
+    application = Application.builder().token(TOKEN).connect_timeout(
+        30.0
+    ).pool_timeout(30.0).read_timeout(30.0).build()
 
     # إضافة معالجات الأوامر
     application.add_handler(CommandHandler("start", start))
@@ -99,10 +110,18 @@ def main() -> None:
     
     # إضافة معالج النصوص
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
+    # إضافة معالج الأخطاء
+    application.add_error_handler(error_handler)
 
-    # استخدام polling للتشغيل المستمر
+    # استخدام polling للتشغيل المستمر مع إعدادات محسنة
     logger.info("Bot is running...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,  # تجاهل التحديثات المعلقة عند بدء التشغيل
+        poll_interval=1.0,  # فترة الاستطلاع بالثواني
+        timeout=30  # مهلة الاتصال بالثواني
+    )
 
 if __name__ == '__main__':
     main()
