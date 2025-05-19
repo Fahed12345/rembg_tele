@@ -20,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # استبدل هذا بالتوكن الخاص بك من BotFather
-TOKEN = "8032466337:AAH65Ej-9Kwl7T7DIviIFV2Sxm_AUDKQAEI"
+TOKEN = "5288324083:AAEG85qlZ8uVjmI_6vTbchhPaJ37t9J3g20"
 
 # مجلد لحفظ الصور المؤقتة
 TEMP_FOLDER = "temp_images"
@@ -47,46 +47,51 @@ async def remove_background(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     wait_message = await update.message.reply_text("جاري معالجة الصورة، يرجى الانتظار...")
     
     try:
-        # الحصول على أكبر نسخة من الصورة (أعلى دقة)
-        photo = update.message.photo[-1]
-        logger.info(f"Processing photo with file_id: {photo.file_id}")
+        # الحصول على نسخة متوسطة من الصورة بدلاً من الأكبر لتوفير الذاكرة
+        # استخدام الصورة الثانية من الأخيرة إذا كانت متوفرة، وإلا استخدام الأخيرة
+        photo = update.message.photo[-2] if len(update.message.photo) > 2 else update.message.photo[-1]
+        logger.info(f"Processing photo with file_id: {photo.file_id}, size: {photo.width}x{photo.height}")
         
         # تنزيل الصورة
         photo_file = await context.bot.get_file(photo.file_id)
-        logger.info(f"Got file info: {photo_file.file_path}")
         photo_bytes = await photo_file.download_as_bytearray()
         logger.info(f"Downloaded photo, size: {len(photo_bytes)} bytes")
         
-        # إزالة الخلفية
-        logger.info("Opening image with PIL")
+        # إزالة الخلفية مع إعدادات أكثر كفاءة للذاكرة
         input_image = Image.open(BytesIO(photo_bytes))
-        logger.info(f"Image opened, size: {input_image.size}, mode: {input_image.mode}")
         
-        logger.info("Removing background with rembg")
-        output_image = remove(input_image)
+        # تقليل حجم الصورة إذا كانت كبيرة جداً
+        max_size = 800
+        if input_image.width > max_size or input_image.height > max_size:
+            # حساب النسبة للحفاظ على تناسب الصورة
+            ratio = min(max_size / input_image.width, max_size / input_image.height)
+            new_size = (int(input_image.width * ratio), int(input_image.height * ratio))
+            input_image = input_image.resize(new_size, Image.LANCZOS)
+            logger.info(f"Resized image to {new_size}")
+        
+        logger.info(f"Processing image, size: {input_image.size}, mode: {input_image.mode}")
+        
+        # استخدام نموذج أخف (u2netp) بدلاً من النموذج الافتراضي
+        output_image = remove(input_image, alpha_matting=False, alpha_matting_foreground_threshold=0, alpha_matting_background_threshold=0, session=None, only_mask=False, post_process_mask=False, model_name="u2netp")
+        
         logger.info("Background removed successfully")
         
         # حفظ الصورة في ذاكرة مؤقتة
         output_buffer = BytesIO()
-        logger.info("Saving processed image to buffer")
-        output_image.save(output_buffer, format='PNG')
+        output_image.save(output_buffer, format='PNG', optimize=True)
         output_buffer.seek(0)
-        logger.info(f"Image saved to buffer, size: {output_buffer.getbuffer().nbytes} bytes")
         
         # إرسال الصورة بدون خلفية
-        logger.info("Sending processed image back to user")
         await update.message.reply_photo(
             photo=output_buffer,
             caption="تمت إزالة الخلفية بنجاح!"
         )
-        logger.info("Processed image sent successfully")
         
         # حذف رسالة الانتظار
         await wait_message.delete()
         
     except Exception as e:
         logger.error(f"Error processing image: {e}")
-        # تسجيل تفاصيل الخطأ
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         await wait_message.edit_text("حدث خطأ أثناء معالجة الصورة. الرجاء المحاولة مرة أخرى.")
