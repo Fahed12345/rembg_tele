@@ -20,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # استبدل هذا بالتوكن الخاص بك من BotFather
-TOKEN = "5288324083:AAEG85qlZ8uVjmI_6vTbchhPaJ37t9J3g20"
+TOKEN = "8032466337:AAH65Ej-9Kwl7T7DIviIFV2Sxm_AUDKQAEI"
 
 # مجلد لحفظ الصور المؤقتة
 TEMP_FOLDER = "temp_images"
