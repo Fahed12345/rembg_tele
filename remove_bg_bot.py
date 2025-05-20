@@ -48,7 +48,6 @@ async def remove_background(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     
     try:
         # الحصول على نسخة متوسطة من الصورة بدلاً من الأكبر لتوفير الذاكرة
-        # استخدام الصورة الثانية من الأخيرة إذا كانت متوفرة، وإلا استخدام الأخيرة
         photo = update.message.photo[-2] if len(update.message.photo) > 2 else update.message.photo[-1]
         logger.info(f"Processing photo with file_id: {photo.file_id}, size: {photo.width}x{photo.height}")
         
@@ -71,16 +70,15 @@ async def remove_background(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         
         logger.info(f"Processing image, size: {input_image.size}, mode: {input_image.mode}")
         
-        # استخدام نموذج أخف (u2netp) بدلاً من النموذج الافتراضي
-        # تصحيح طريقة استدعاء الدالة remove
+        # استخدام الدالة remove بدون تحديد model_name
+        # تم تعديل طريقة الاستدعاء لتجنب تمرير model_name مرتين
         output_image = remove(
             input_image,
             alpha_matting=False,
             alpha_matting_foreground_threshold=0,
             alpha_matting_background_threshold=0,
             only_mask=False,
-            post_process_mask=False,
-            model_name="u2netp"  # تحديد النموذج الأخف
+            post_process_mask=False
         )
         
         logger.info("Background removed successfully")
